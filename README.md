@@ -21,7 +21,7 @@ Self-hosted, single-server WordPress Fleet Manager for HestiaCP. Manages WordPre
 1. Clone the repository to `/opt/wp-fleet`:
 
 ```bash
-git clone https://github.com/YOUR_USER/YOUR_REPO.git /opt/wp-fleet
+git clone https://github.com/christoskaterini/WP-Fleet.git /opt/wp-fleet
 cd /opt/wp-fleet
 ```
 
@@ -74,7 +74,7 @@ HELPER_BIN=/usr/local/sbin/wp-fleet-helper
 
 JOB_CONCURRENCY=2
 SNAPSHOT_RETENTION_DAYS=14
-GITHUB_REPO=YOUR_USER/YOUR_REPO
+GITHUB_REPO=christoskaterini/WP-Fleet
 ```
 
 4. Configure the HestiaCP Nginx reverse proxy (do not edit generated vhost files directly):
