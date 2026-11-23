@@ -572,6 +572,31 @@ a:hover { text-decoration: underline; }
 .toast.ok { border-left-color: #4ade80; }
 .toast.error { background: #361a1e; border-left-color: #f87171; }
 
+.scan-banner {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 9px 14px;
+  margin-bottom: 12px;
+  background: var(--brand-soft);
+  border: 1px solid #3b4c73;
+  border-radius: var(--radius);
+  font-size: 12px;
+  color: var(--text);
+}
+.spinner {
+  width: 14px;
+  height: 14px;
+  border: 2px solid rgba(255, 255, 255, 0.25);
+  border-top-color: #7aa2f7;
+  border-radius: 50%;
+  animation: spin 0.75s linear infinite;
+  flex-shrink: 0;
+}
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
 /* Overview & DB Viewer */
 .overview-grid {
   display: grid;

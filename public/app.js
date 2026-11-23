@@ -171,8 +171,15 @@ function renderSites() {
     <div class="stat-pill"><strong>${totalUpdates}</strong> Pending Updates</div>
   `;
 
-  $('#sites-tbody').innerHTML = filtered
-    .map((s) => {
+  $('#sites-tbody').innerHTML =
+    filtered.length === 0
+      ? `<tr><td colspan="8" class="muted">${
+          state.sites.length === 0
+            ? 'No sites indexed yet. Click "Refresh Scan" above to discover WordPress sites.'
+            : 'No matching sites.'
+        }</td></tr>`
+      : filtered
+          .map((s) => {
       const updTotal = (s.plugin_updates || 0) + (s.theme_updates || 0);
       let healthHtml = '<span class="muted">Not checked</span>';
       if (s.http_status !== null && s.http_status !== undefined) {
@@ -221,10 +228,16 @@ $('#sites-filter').addEventListener('input', renderSites);
 
 $('#btn-scan').addEventListener('click', async () => {
   try {
+    $('#btn-scan').disabled = true;
+    $('#btn-scan').textContent = 'Scanning…';
+    $('#scan-banner-text').textContent = 'Discovering WordPress sites...';
+    $('#scan-banner').classList.remove('hidden');
     await api('/api/sites/scan', { method: 'POST' });
-    toast('Site scan started');
     openTerminal();
   } catch (err) {
+    $('#btn-scan').disabled = false;
+    $('#btn-scan').textContent = 'Refresh Scan';
+    $('#scan-banner').classList.add('hidden');
     toast(err.message, 'error');
   }
 });
@@ -1411,10 +1424,20 @@ function connectSSE() {
     if (payload.status === 'running') {
       $('#active-job-label').textContent = `— ${payload.label}`;
       appendTerminal(`\n=== [${payload.domain}] ${payload.label} ===`);
+      if (payload.action === 'scan') {
+        $('#btn-scan').disabled = true;
+        $('#btn-scan').textContent = 'Scanning…';
+        $('#scan-banner').classList.remove('hidden');
+      }
     } else if (payload.status === 'done') {
       $('#active-job-label').textContent = '';
       appendTerminal(`=== DONE: ${payload.label} ===`);
       toast(`Done: ${payload.label}`);
+      if (payload.action === 'scan') {
+        $('#btn-scan').disabled = false;
+        $('#btn-scan').textContent = 'Refresh Scan';
+        $('#scan-banner').classList.add('hidden');
+      }
       if (state.diagJobId && state.diagJobId === payload.id) {
         const box = $('#debug-log-box');
         box.textContent += `\n✔ Done: ${payload.label}\n`;
@@ -1428,6 +1451,11 @@ function connectSSE() {
       $('#active-job-label').textContent = '';
       appendTerminal(`=== FAILED: ${payload.error} ===`);
       toast(`Failed: ${payload.error}`, 'error');
+      if (payload.action === 'scan') {
+        $('#btn-scan').disabled = false;
+        $('#btn-scan').textContent = 'Refresh Scan';
+        $('#scan-banner').classList.add('hidden');
+      }
       if (state.diagJobId && state.diagJobId === payload.id) {
         const box = $('#debug-log-box');
         box.textContent += `\n✖ Failed: ${payload.error}\n`;
@@ -1439,6 +1467,9 @@ function connectSSE() {
   es.addEventListener('log', (e) => {
     const { payload } = JSON.parse(e.data);
     appendTerminal(`[${payload.domain}] ${payload.line}`);
+    if ((payload.domain === 'global' || payload.domain.startsWith('user:')) && payload.line.startsWith('Scanning ')) {
+      $('#scan-banner-text').textContent = payload.line;
+    }
     if (state.diagJobId && state.diagJobId === payload.id) {
       const box = $('#debug-log-box');
       box.textContent += `${payload.line}\n`;
