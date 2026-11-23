@@ -192,11 +192,12 @@ case "$cmd" in
     if command -v v-add-web-domain >/dev/null 2>&1; then
       if ! v-list-web-domains "$user" | awk '{print $1}' | grep -qx "$stg_domain"; then
         rm -rf "/home/${user}/web/${stg_domain}"
-        v-add-web-domain "$user" "$stg_domain" "" "no"
+        v-add-web-domain "$user" "$stg_domain" "" "yes"
       fi
       if ! v-list-databases "$user" | awk '{print $1}' | grep -qx "$full_db"; then
         v-add-database "$user" "$db_suffix" "$db_user_suffix" "$db_pass" "mysql" "localhost"
       fi
+      v-add-letsencrypt-domain "$user" "$stg_domain" "" "yes" >/dev/null 2>&1 || true
     else
       mkdir -p "$stg_dir" "/home/${user}/conf/web/${stg_domain}" "/var/cache/nginx/micro/${stg_domain}"
       chown -R "${user}:${user}" "/home/${user}/web/${stg_domain}" "/home/${user}/conf/web/${stg_domain}"

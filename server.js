@@ -568,8 +568,10 @@ app.post('/api/sites/:domain/staging/create', async (req) => {
       await pipeDbBetweenSites(liveSite, stgSite, log);
 
       const liveUrl = (liveSite.site_url || `https://${domain}`).replace(/\/+$/, '');
-      const proto = liveUrl.startsWith('https://') && getConfig().mode === 'hestia' ? 'http://' : liveUrl.match(/^https?:\/\//)?.[0] || 'http://';
-      const stgUrl = `${proto}${stgDomain}`;
+      const hasSsl =
+        fs.existsSync(`/home/${liveSite.user}/conf/web/${stgDomain}/ssl/${stgDomain}.crt`) ||
+        fs.existsSync(`/home/${liveSite.user}/conf/web/${stgDomain}/nginx.ssl.conf`);
+      const stgUrl = hasSsl ? `https://${stgDomain}` : `http://${stgDomain}`;
 
       await runWp(stgSite, ['search-replace', liveUrl, stgUrl, '--all-tables'], { onLine: log });
       await runWp(stgSite, ['option', 'update', 'blog_public', '0'], { onLine: log }).catch(() => {});
