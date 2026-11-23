@@ -77,11 +77,10 @@ SNAPSHOT_RETENTION_DAYS=14
 GITHUB_REPO=christoskaterini/WP-Fleet
 ```
 
-4. Configure the HestiaCP Nginx reverse proxy (do not edit generated vhost files directly):
+4. Configure the HestiaCP Nginx reverse proxy using the installed `wpfleet` template (survives HestiaCP updates and keeps Let's Encrypt SSL working without duplicate `location /` errors):
 
 ```bash
-cp /opt/wp-fleet/setup/nginx.conf_wpfleet /home/<hestia_user>/conf/web/<domain>/nginx.conf_wpfleet
-v-rebuild-web-domain <hestia_user> <domain>
+v-change-web-domain-tpl <hestia_user> <domain> wpfleet
 ```
 
 5. Start the service:
