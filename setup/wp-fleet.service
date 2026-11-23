@@ -14,8 +14,6 @@ Environment=NODE_ENV=production
 
 NoNewPrivileges=false
 PrivateTmp=true
-ProtectSystem=full
-ReadWritePaths=/opt/wp-fleet/data /opt/wp-repo /var/backups/wp-fleet
 
 [Install]
 WantedBy=multi-user.target
