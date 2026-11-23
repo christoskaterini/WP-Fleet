@@ -77,11 +77,13 @@ SNAPSHOT_RETENTION_DAYS=14
 GITHUB_REPO=christoskaterini/WP-Fleet
 ```
 
-4. Configure the HestiaCP Nginx reverse proxy using the installed `wpfleet` template (survives HestiaCP updates and keeps Let's Encrypt SSL working without duplicate `location /` errors):
+4. Create the web domain for WP Fleet in HestiaCP (e.g. `wp.example.com`) with SSL enabled, then assign the `wpfleet` Nginx template **only to that WP Fleet domain** (either in HestiaCP UI under Edit Web Domain -> Web Template `wpfleet`, or via CLI):
 
 ```bash
 v-change-web-domain-tpl <hestia_user> <domain> wpfleet
 ```
+
+This template is installed by `setup/install.sh` into `/usr/local/hestia/data/templates/web/nginx/` (`wpfleet.tpl` / `wpfleet.stpl`), survives HestiaCP updates, and keeps Let's Encrypt SSL working. All managed WordPress sites continue using their normal HestiaCP PHP templates.
 
 5. Start the service:
 
