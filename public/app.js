@@ -313,6 +313,7 @@ async function loadDrawerData() {
 
   // Site & DB settings
   const siteUrl = info.homeUrl || site.site_url;
+  $('#drawer-visit-site').href = siteUrl;
   $('#info-site-url').value = siteUrl;
   $('#info-site-path').value = site.path;
   $('#info-site-path').readOnly = state.me?.role !== 'admin';

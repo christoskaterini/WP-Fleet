@@ -272,6 +272,7 @@
             <div id="drawer-meta" class="muted"></div>
           </div>
           <div class="btn-group">
+            <a id="drawer-visit-site" class="btn btn-secondary btn-sm" href="#" target="_blank" rel="noopener">Visit Site ↗</a>
             <button id="drawer-magic-login" class="btn btn-primary btn-sm">Magic Login ↗</button>
             <button id="drawer-close" class="btn btn-ghost btn-sm">✕ Close</button>
           </div>
@@ -412,7 +413,10 @@
                     <input type="text" id="staging-domain-input" class="input-sm" placeholder="staging.example.com" required>
                     <button type="submit" class="btn btn-primary btn-sm">Create Staging</button>
                   </div>
-                  <div class="muted">Clones files &amp; database, updates wp-config.php, and runs search-replace automatically. Remember to add an <strong>A record</strong> for the staging subdomain in DNS (grey-clouded if using Cloudflare).</div>
+                  <div class="muted">Clones files &amp; database, updates wp-config.php, and runs search-replace automatically.</div>
+                  <div class="muted" style="font-size:11px;line-height:1.5;border-top:1px solid var(--border);padding-top:8px">
+                    <strong>DNS &amp; Cloudflare Tip:</strong> Add an <strong>A record</strong> for the staging subdomain pointing to your server IP. If using Cloudflare, set it to <strong>DNS Only (grey cloud)</strong> first so SSL issues cleanly; once active, you can re-enable <strong>Proxy (orange cloud)</strong> with a <strong>Bypass Cache</strong> rule for WAF protection, or delete the staging site when finished.
+                  </div>
                 </form>
               </div>
               <div class="card">
