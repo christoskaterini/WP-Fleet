@@ -359,7 +359,7 @@ a:hover { text-decoration: underline; }
   border-bottom-color: var(--brand-accent);
 }
 .drawer-body {
-  padding: 16px 18px;
+  padding: 16px 18px 60px;
   overflow-y: auto;
   flex: 1;
 }
