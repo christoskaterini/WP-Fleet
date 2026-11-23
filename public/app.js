@@ -297,8 +297,8 @@ window.openDrawer = async (domain) => {
   $('#db-viewer-panel').classList.add('hidden');
   $('#wporg-plugin-results').classList.add('hidden');
   $('#wporg-theme-results').classList.add('hidden');
-  document.querySelectorAll('.dtab').forEach((b) => b.classList.toggle('active', b.dataset.dtab === 'overview'));
-  document.querySelectorAll('.dtab-panel').forEach((p) => p.classList.toggle('hidden', p.id !== 'dtab-overview'));
+  document.querySelectorAll('.dtab').forEach((b) => b.classList.toggle('active', b.dataset.dtab === 'plugins'));
+  document.querySelectorAll('.dtab-panel').forEach((p) => p.classList.toggle('hidden', p.id !== 'dtab-plugins'));
   await loadDrawerData();
 };
 
@@ -311,10 +311,8 @@ async function loadDrawerData() {
   state.drawerAssets = assets;
   $('#drawer-meta').textContent = `User: ${site.user} · WP ${site.wp_version || '?'} · PHP ${site.php_version || '?'}`;
 
-  // Overview: Iframe, URL/Path, DB Details
+  // Site & DB settings
   const siteUrl = info.homeUrl || site.site_url;
-  $('#site-preview-frame').src = siteUrl;
-  $('#link-open-site').href = siteUrl;
   $('#info-site-url').value = siteUrl;
   $('#info-site-path').value = site.path;
   $('#info-site-path').readOnly = state.me?.role !== 'admin';
@@ -457,11 +455,6 @@ window.deleteWpUser = async (id, login) => {
     toast(err.message, 'error');
   }
 };
-
-$('#btn-reload-iframe').addEventListener('click', () => {
-  const f = $('#site-preview-frame');
-  f.src = f.src;
-});
 
 $('#site-settings-form').addEventListener('submit', async (e) => {
   e.preventDefault();

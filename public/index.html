@@ -278,77 +278,18 @@
         </div>
 
         <div class="drawer-tabs">
-          <button class="dtab active" data-dtab="overview">Overview & DB</button>
-          <button class="dtab" data-dtab="plugins">Plugins</button>
+          <button class="dtab active" data-dtab="plugins">Plugins</button>
           <button class="dtab" data-dtab="themes">Themes</button>
-          <button class="dtab" data-dtab="wpusers">WP Users</button>
-          <button class="dtab" data-dtab="staging">Staging</button>
           <button class="dtab" data-dtab="snapshots">Snapshots & Rollback</button>
+          <button class="dtab" data-dtab="staging">Staging</button>
           <button class="dtab" data-dtab="diagnostics">Diagnostics & Cache</button>
+          <button class="dtab" data-dtab="wpusers">WP Users</button>
+          <button class="dtab" data-dtab="overview">Site & DB</button>
         </div>
 
         <div class="drawer-body">
-          <!-- Overview & DB -->
-          <div id="dtab-overview" class="dtab-panel">
-            <div class="overview-grid">
-              <div class="card">
-                <div class="card-head">
-                  <h3>Website Preview</h3>
-                  <div class="btn-group">
-                    <button id="btn-reload-iframe" class="btn btn-secondary btn-xs">Reload</button>
-                    <a id="link-open-site" class="btn btn-secondary btn-xs" href="#" target="_blank" rel="noopener">Open ↗</a>
-                  </div>
-                </div>
-                <iframe id="site-preview-frame" class="site-iframe" sandbox="allow-same-origin allow-scripts allow-forms"></iframe>
-                <div class="muted" style="padding:6px 12px;font-size:11px;border-top:1px solid var(--border)">Sites that send <code>X-Frame-Options: SAMEORIGIN</code> block embedding — use <strong>Open ↗</strong> above to view them.</div>
-              </div>
-
-              <div class="overview-side">
-                <div class="card mb-12">
-                  <div class="card-head"><h3>Installation Settings</h3></div>
-                  <form id="site-settings-form" class="bp-form">
-                    <label>
-                      <span>Website URL</span>
-                      <input type="url" id="info-site-url" class="input-sm" required>
-                    </label>
-                    <label>
-                      <span>Website Path</span>
-                      <input type="text" id="info-site-path" class="input-sm" required>
-                    </label>
-                    <label style="display:flex;align-items:center;gap:6px;font-weight:400;cursor:pointer">
-                      <input type="checkbox" id="info-search-replace">
-                      <span>Run search-replace if URL changed</span>
-                    </label>
-                    <button type="submit" class="btn btn-primary btn-sm">Save URL / Path</button>
-                  </form>
-                </div>
-
-                <div class="card">
-                  <div class="card-head">
-                    <h3>Database Details</h3>
-                    <button id="btn-view-db" class="btn btn-primary btn-xs">View Database</button>
-                  </div>
-                  <div id="info-db-details" class="db-details-list"></div>
-                </div>
-              </div>
-            </div>
-
-            <div id="db-viewer-panel" class="card hidden" style="margin-top:14px">
-              <div class="card-head">
-                <h3>Database Viewer <span id="db-viewer-table-name" class="muted"></span></h3>
-                <button id="btn-close-db" class="btn btn-ghost btn-xs">✕ Close</button>
-              </div>
-              <div class="db-viewer-grid">
-                <div id="db-tables-list" class="db-tables-list"></div>
-                <div id="db-rows-wrap" class="db-rows-wrap table-wrap">
-                  <div class="muted" style="padding:14px">Select a table on the left to inspect rows.</div>
-                </div>
-              </div>
-            </div>
-          </div>
-
           <!-- Plugins -->
-          <div id="dtab-plugins" class="dtab-panel hidden">
+          <div id="dtab-plugins" class="dtab-panel">
             <div class="panel-header">
               <div class="btn-group">
                 <button id="btn-update-all-plugins" class="btn btn-primary btn-sm">Update All Plugins</button>
@@ -365,6 +306,51 @@
               </thead>
               <tbody id="drawer-plugins-tbody"></tbody>
             </table>
+          </div>
+
+          <!-- Site & DB -->
+          <div id="dtab-overview" class="dtab-panel hidden">
+            <div class="overview-grid">
+              <div class="card">
+                <div class="card-head"><h3>Installation Settings</h3></div>
+                <form id="site-settings-form" class="bp-form">
+                  <label>
+                    <span>Website URL</span>
+                    <input type="url" id="info-site-url" class="input-sm" required>
+                  </label>
+                  <label>
+                    <span>Website Path</span>
+                    <input type="text" id="info-site-path" class="input-sm" required>
+                  </label>
+                  <label style="display:flex;align-items:center;gap:6px;font-weight:400;cursor:pointer">
+                    <input type="checkbox" id="info-search-replace">
+                    <span>Run search-replace if URL changed</span>
+                  </label>
+                  <button type="submit" class="btn btn-primary btn-sm">Save URL / Path</button>
+                </form>
+              </div>
+
+              <div class="card">
+                <div class="card-head">
+                  <h3>Database Details</h3>
+                  <button id="btn-view-db" class="btn btn-primary btn-xs">View Database</button>
+                </div>
+                <div id="info-db-details" class="db-details-list"></div>
+              </div>
+            </div>
+
+            <div id="db-viewer-panel" class="card hidden" style="margin-top:14px">
+              <div class="card-head">
+                <h3>Database Viewer <span id="db-viewer-table-name" class="muted"></span></h3>
+                <button id="btn-close-db" class="btn btn-ghost btn-xs">✕ Close</button>
+              </div>
+              <div class="db-viewer-grid">
+                <div id="db-tables-list" class="db-tables-list"></div>
+                <div id="db-rows-wrap" class="db-rows-wrap table-wrap">
+                  <div class="muted" style="padding:14px">Select a table on the left to inspect rows.</div>
+                </div>
+              </div>
+            </div>
           </div>
 
           <!-- Themes -->
