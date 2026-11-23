@@ -31,12 +31,17 @@ if [[ "$NODE_MAJOR" -lt 22 ]]; then
 fi
 node -v
 
-echo "==> 3. Checking WP-CLI (/usr/local/bin/wp)..."
+echo "==> 3. Checking WP-CLI (/usr/local/bin/wp) & PHP CLI..."
 if [[ ! -x /usr/local/bin/wp ]]; then
   echo "Installing WP-CLI..."
   curl -fsSL https://raw.githubusercontent.com/wp-cli/builds/gh-pages/phar/wp-cli.phar -o /usr/local/bin/wp
   chmod +x /usr/local/bin/wp
 fi
+for cli_conf_d in /etc/php/*/cli/conf.d; do
+  if [[ -d "$cli_conf_d" ]]; then
+    echo "disable_functions =" > "${cli_conf_d}/99-wpfleet-cli.ini"
+  fi
+done
 /usr/local/bin/wp --version --allow-root
 
 echo "==> 4. Creating wp-fleet system user..."
