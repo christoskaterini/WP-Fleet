@@ -82,6 +82,11 @@ if [[ -d "$HESTIA_TPL_DIR" ]]; then
   cp "$APP_DIR/setup/wpfleet.tpl" "$HESTIA_TPL_DIR/wpfleet.tpl"
   cp "$APP_DIR/setup/wpfleet.stpl" "$HESTIA_TPL_DIR/wpfleet.stpl"
   chmod 644 "$HESTIA_TPL_DIR/wpfleet.tpl" "$HESTIA_TPL_DIR/wpfleet.stpl"
+  if [[ -d "$HESTIA_TPL_DIR/php-fpm" ]]; then
+    cp "$APP_DIR/setup/wpfleet.tpl" "$HESTIA_TPL_DIR/php-fpm/wpfleet.tpl"
+    cp "$APP_DIR/setup/wpfleet.stpl" "$HESTIA_TPL_DIR/php-fpm/wpfleet.stpl"
+    chmod 644 "$HESTIA_TPL_DIR/php-fpm/wpfleet.tpl" "$HESTIA_TPL_DIR/php-fpm/wpfleet.stpl"
+  fi
 fi
 
 echo "==> 10. Installing systemd unit..."
