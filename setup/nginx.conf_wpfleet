@@ -1,0 +1,18 @@
+# HestiaCP custom Nginx include for wp.flexx.gr
+# Place at: /home/flexx/conf/web/wp.flexx.gr/nginx.conf_wpfleet
+# Then run: v-rebuild-web-domain flexx wp.flexx.gr
+
+location / {
+    proxy_pass http://127.0.0.1:3100;
+    proxy_http_version 1.1;
+    proxy_set_header Host $host;
+    proxy_set_header X-Real-IP $remote_addr;
+    proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+    proxy_set_header X-Forwarded-Proto $scheme;
+
+    # Required for SSE live terminal
+    proxy_buffering off;
+    proxy_cache off;
+    proxy_read_timeout 3600s;
+    chunked_transfer_encoding off;
+}

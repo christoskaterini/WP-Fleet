@@ -1,0 +1,21 @@
+[Unit]
+Description=WP Fleet Manager (HestiaCP)
+After=network.target mariadb.service redis-server.service
+
+[Service]
+Type=simple
+User=wp-fleet
+Group=wp-fleet
+WorkingDirectory=/opt/wp-fleet
+ExecStart=/usr/bin/node /opt/wp-fleet/server.js
+Restart=always
+RestartSec=3
+Environment=NODE_ENV=production
+
+NoNewPrivileges=false
+PrivateTmp=true
+ProtectSystem=full
+ReadWritePaths=/opt/wp-fleet/data /opt/wp-repo /var/backups/wp-fleet
+
+[Install]
+WantedBy=multi-user.target

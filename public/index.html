@@ -1,0 +1,546 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="robots" content="noindex, nofollow">
+  <title>WP Fleet Manager</title>
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='6' fill='%231b2230'/%3E%3Crect x='7' y='7' width='18' height='18' rx='4' fill='%235d7bb8'/%3E%3C/svg%3E">
+  <link rel="stylesheet" href="/styles.css">
+</head>
+<body>
+  <!-- Login View -->
+  <div id="login-view" class="login-wrap hidden">
+    <div class="login-card">
+      <div class="login-brand">
+        <span class="brand-dot"></span>
+        <span>WP Fleet Manager</span>
+      </div>
+      <p class="muted">Sign in to manage WordPress sites</p>
+      <form id="login-form">
+        <label>
+          <span>Username</span>
+          <input type="text" id="login-user" autocomplete="username" required>
+        </label>
+        <label>
+          <span>Password</span>
+          <input type="password" id="login-pass" autocomplete="current-password" required>
+        </label>
+        <div id="login-error" class="error-msg hidden"></div>
+        <button type="submit" class="btn btn-primary btn-full">Sign In</button>
+        <p class="muted" style="margin:12px 0 0;font-size:11px;text-align:center">Need a password reset? Contact your server administrator.</p>
+      </form>
+    </div>
+  </div>
+
+  <!-- App View -->
+  <div id="app-view" class="app-shell hidden">
+    <header class="topbar">
+      <div class="topbar-left">
+        <div class="brand">
+          <span class="brand-dot"></span>
+          <strong>WP Fleet</strong>
+          <span id="version-badge" class="badge"></span>
+        </div>
+        <nav class="nav-tabs">
+          <button class="nav-tab active" data-tab="sites">Sites</button>
+          <button class="nav-tab" data-tab="matrix">Cross-Site Matrix</button>
+          <button class="nav-tab" data-tab="vault" data-admin-only="1">Pro ZIP Vault</button>
+          <button class="nav-tab" data-tab="blueprints">Blueprints</button>
+          <button class="nav-tab" data-tab="users" data-admin-only="1">Users</button>
+          <button class="nav-tab" data-tab="audit">Activity Log</button>
+        </nav>
+      </div>
+      <div class="topbar-right">
+        <button id="btn-scan" class="btn btn-secondary">Refresh Scan</button>
+        <button id="btn-health-all" class="btn btn-secondary">Check All Health</button>
+        <div class="user-menu">
+          <button type="button" id="user-pill" class="btn btn-secondary user-menu-trigger"></button>
+          <div class="user-dropdown">
+            <button type="button" id="btn-profile" class="user-dropdown-item">Profile &amp; Password</button>
+            <button type="button" id="btn-logout" class="user-dropdown-item danger">Logout</button>
+          </div>
+        </div>
+      </div>
+    </header>
+
+    <main class="main-content">
+      <!-- Sites Tab -->
+      <section id="tab-sites" class="tab-panel">
+        <div class="panel-header">
+          <div class="stats-row" id="sites-stats"></div>
+          <input type="search" id="sites-filter" class="input-sm" placeholder="Filter domain or user...">
+        </div>
+        <div class="card table-wrap">
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>Domain</th>
+                <th>User</th>
+                <th>PHP</th>
+                <th>WP Core</th>
+                <th>Active Theme</th>
+                <th>Updates</th>
+                <th>Health / TTFB</th>
+                <th class="text-right">Actions</th>
+              </tr>
+            </thead>
+            <tbody id="sites-tbody"></tbody>
+          </table>
+        </div>
+      </section>
+
+      <!-- Cross-Site Matrix Tab -->
+      <section id="tab-matrix" class="tab-panel hidden">
+        <div class="panel-header">
+          <div class="btn-group">
+            <button id="matrix-type-plugin" class="btn btn-primary btn-sm">Plugins</button>
+            <button id="matrix-type-theme" class="btn btn-secondary btn-sm">Themes</button>
+          </div>
+          <input type="search" id="matrix-filter" class="input-sm" placeholder="Filter slug or name...">
+        </div>
+        <div class="card table-wrap">
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>Asset</th>
+                <th>Sites</th>
+                <th>Updates</th>
+                <th>Instances</th>
+                <th class="text-right">Bulk Action</th>
+              </tr>
+            </thead>
+            <tbody id="matrix-tbody"></tbody>
+          </table>
+        </div>
+      </section>
+
+      <!-- Pro ZIP Vault Tab -->
+      <section id="tab-vault" class="tab-panel hidden">
+        <div class="vault-grid">
+          <div class="card">
+            <div class="card-head">
+              <h3>Pro Plugins <span class="muted">(/opt/wp-repo/plugins)</span></h3>
+              <label class="btn btn-primary btn-sm upload-label">
+                Upload .zip
+                <input type="file" id="upload-plugin-zip" accept=".zip" hidden>
+              </label>
+            </div>
+            <table class="data-table">
+              <thead>
+                <tr><th>Filename</th><th>Size</th><th class="text-right">Actions</th></tr>
+              </thead>
+              <tbody id="vault-plugins-tbody"></tbody>
+            </table>
+          </div>
+
+          <div class="card">
+            <div class="card-head">
+              <h3>Pro Themes <span class="muted">(/opt/wp-repo/themes)</span></h3>
+              <label class="btn btn-primary btn-sm upload-label">
+                Upload .zip
+                <input type="file" id="upload-theme-zip" accept=".zip" hidden>
+              </label>
+            </div>
+            <table class="data-table">
+              <thead>
+                <tr><th>Filename</th><th>Size</th><th class="text-right">Actions</th></tr>
+              </thead>
+              <tbody id="vault-themes-tbody"></tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <!-- Blueprints Tab -->
+      <section id="tab-blueprints" class="tab-panel hidden">
+        <div class="vault-grid">
+          <div class="card">
+            <div class="card-head">
+              <h3>New Blueprint Template</h3>
+            </div>
+            <form id="bp-form" class="bp-form">
+              <label>
+                <span>Blueprint Name</span>
+                <input type="text" id="bp-name" class="input-sm" placeholder="e.g. Agency Base Stack" required>
+              </label>
+              <label>
+                <span>WordPress.org Plugins</span>
+                <div class="search-install">
+                  <input type="search" id="bp-plugin-search" class="input-sm" placeholder="Filter installed or search WordPress.org plugins...">
+                  <button type="button" id="bp-plugin-search-btn" class="btn btn-secondary btn-sm">Search WP.org</button>
+                </div>
+                <div id="bp-selected-plugins" class="bp-checks"></div>
+                <div id="bp-plugin-picker" class="bp-picker"></div>
+              </label>
+              <label data-admin-only="1">
+                <span>Pro Vault Plugins</span>
+                <div id="bp-vault-plugins" class="bp-checks muted">Loading vault...</div>
+              </label>
+              <label data-admin-only="1">
+                <span>Pro Vault Theme (optional)</span>
+                <select id="bp-vault-theme" class="input-sm">
+                  <option value="">None</option>
+                </select>
+              </label>
+              <button type="submit" class="btn btn-primary btn-sm">Save Blueprint</button>
+            </form>
+          </div>
+
+          <div class="card">
+            <div class="card-head">
+              <h3>Saved Blueprints</h3>
+            </div>
+            <table class="data-table">
+              <thead>
+                <tr><th>Name</th><th>Bundle</th><th class="text-right">Actions</th></tr>
+              </thead>
+              <tbody id="bp-tbody"></tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <!-- Fleet Users Tab (Admin Only) -->
+      <section id="tab-users" class="tab-panel hidden">
+        <div class="vault-grid">
+          <div class="card">
+            <div class="card-head"><h3>Create Fleet User</h3></div>
+            <form id="fleet-user-form" class="bp-form">
+              <label>
+                <span>Username</span>
+                <input type="text" id="fu-username" class="input-sm" placeholder="e.g. shopclient" required>
+              </label>
+              <label>
+                <span>Password (min 8 chars, letters + numbers)</span>
+                <input type="password" id="fu-password" class="input-sm" minlength="8" required>
+              </label>
+              <label>
+                <span>Confirm Password</span>
+                <input type="password" id="fu-confirm" class="input-sm" minlength="8" required>
+              </label>
+              <label>
+                <span>Role</span>
+                <select id="fu-role" class="input-sm">
+                  <option value="client">Client (Isolated to Hestia User)</option>
+                  <option value="admin">Master Admin (All Sites)</option>
+                </select>
+              </label>
+              <label id="fu-hestia-wrap">
+                <span>Hestia User Account</span>
+                <select id="fu-hestia-user" class="input-sm"></select>
+              </label>
+              <button type="submit" class="btn btn-primary btn-sm">Create User</button>
+            </form>
+          </div>
+
+          <div class="card">
+            <div class="card-head"><h3>Fleet Accounts</h3></div>
+            <table class="data-table">
+              <thead>
+                <tr><th>Username</th><th>Role</th><th>Hestia User</th><th>Status</th><th class="text-right">Actions</th></tr>
+              </thead>
+              <tbody id="fu-tbody"></tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <!-- Activity Log Tab -->
+      <section id="tab-audit" class="tab-panel hidden">
+        <div class="card table-wrap">
+          <table class="data-table">
+            <thead>
+              <tr><th>Time</th><th>Domain</th><th>Action</th><th>Status</th><th>Details</th></tr>
+            </thead>
+            <tbody id="audit-tbody"></tbody>
+          </table>
+        </div>
+      </section>
+    </main>
+
+    <!-- Site Detail Modal / Drawer -->
+    <div id="site-drawer" class="drawer-backdrop hidden">
+      <div class="drawer">
+        <div class="drawer-head">
+          <div>
+            <h2 id="drawer-domain"></h2>
+            <div id="drawer-meta" class="muted"></div>
+          </div>
+          <div class="btn-group">
+            <button id="drawer-magic-login" class="btn btn-primary btn-sm">Magic Login ↗</button>
+            <button id="drawer-close" class="btn btn-ghost btn-sm">✕ Close</button>
+          </div>
+        </div>
+
+        <div class="drawer-tabs">
+          <button class="dtab active" data-dtab="overview">Overview & DB</button>
+          <button class="dtab" data-dtab="plugins">Plugins</button>
+          <button class="dtab" data-dtab="themes">Themes</button>
+          <button class="dtab" data-dtab="wpusers">WP Users</button>
+          <button class="dtab" data-dtab="staging">Staging</button>
+          <button class="dtab" data-dtab="snapshots">Snapshots & Rollback</button>
+          <button class="dtab" data-dtab="diagnostics">Diagnostics & Cache</button>
+        </div>
+
+        <div class="drawer-body">
+          <!-- Overview & DB -->
+          <div id="dtab-overview" class="dtab-panel">
+            <div class="overview-grid">
+              <div class="card">
+                <div class="card-head">
+                  <h3>Website Preview</h3>
+                  <div class="btn-group">
+                    <button id="btn-reload-iframe" class="btn btn-secondary btn-xs">Reload</button>
+                    <a id="link-open-site" class="btn btn-secondary btn-xs" href="#" target="_blank" rel="noopener">Open ↗</a>
+                  </div>
+                </div>
+                <iframe id="site-preview-frame" class="site-iframe" sandbox="allow-same-origin allow-scripts allow-forms"></iframe>
+              </div>
+
+              <div class="overview-side">
+                <div class="card mb-12">
+                  <div class="card-head"><h3>Installation Settings</h3></div>
+                  <form id="site-settings-form" class="bp-form">
+                    <label>
+                      <span>Website URL</span>
+                      <input type="url" id="info-site-url" class="input-sm" required>
+                    </label>
+                    <label>
+                      <span>Website Path</span>
+                      <input type="text" id="info-site-path" class="input-sm" required>
+                    </label>
+                    <label style="display:flex;align-items:center;gap:6px;font-weight:400;cursor:pointer">
+                      <input type="checkbox" id="info-search-replace">
+                      <span>Run search-replace if URL changed</span>
+                    </label>
+                    <button type="submit" class="btn btn-primary btn-sm">Save URL / Path</button>
+                  </form>
+                </div>
+
+                <div class="card">
+                  <div class="card-head">
+                    <h3>Database Details</h3>
+                    <button id="btn-view-db" class="btn btn-primary btn-xs">View Database</button>
+                  </div>
+                  <div id="info-db-details" class="db-details-list"></div>
+                </div>
+              </div>
+            </div>
+
+            <div id="db-viewer-panel" class="card hidden" style="margin-top:14px">
+              <div class="card-head">
+                <h3>Database Viewer <span id="db-viewer-table-name" class="muted"></span></h3>
+                <button id="btn-close-db" class="btn btn-ghost btn-xs">✕ Close</button>
+              </div>
+              <div class="db-viewer-grid">
+                <div id="db-tables-list" class="db-tables-list"></div>
+                <div id="db-rows-wrap" class="db-rows-wrap table-wrap">
+                  <div class="muted" style="padding:14px">Select a table on the left to inspect rows.</div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Plugins -->
+          <div id="dtab-plugins" class="dtab-panel hidden">
+            <div class="panel-header">
+              <div class="btn-group">
+                <button id="btn-update-all-plugins" class="btn btn-primary btn-sm">Update All Plugins</button>
+              </div>
+              <div class="search-install">
+                <input type="search" id="wporg-plugin-q" class="input-sm" placeholder="Search WordPress.org plugins...">
+                <button id="btn-search-plugin" class="btn btn-secondary btn-sm">Search</button>
+              </div>
+            </div>
+            <div id="wporg-plugin-results" class="search-results hidden"></div>
+            <table class="data-table">
+              <thead>
+                <tr><th>Plugin</th><th>Status</th><th>Version</th><th>Update</th><th class="text-right">Actions</th></tr>
+              </thead>
+              <tbody id="drawer-plugins-tbody"></tbody>
+            </table>
+          </div>
+
+          <!-- Themes -->
+          <div id="dtab-themes" class="dtab-panel hidden">
+            <div class="panel-header">
+              <button id="btn-update-all-themes" class="btn btn-primary btn-sm">Update All Themes</button>
+              <div class="search-install">
+                <input type="search" id="wporg-theme-q" class="input-sm" placeholder="Search WordPress.org themes...">
+                <button id="btn-search-theme" class="btn btn-secondary btn-sm">Search</button>
+              </div>
+            </div>
+            <div id="wporg-theme-results" class="search-results hidden"></div>
+            <table class="data-table">
+              <thead>
+                <tr><th>Theme</th><th>Status</th><th>Version</th><th>Update</th><th class="text-right">Actions</th></tr>
+              </thead>
+              <tbody id="drawer-themes-tbody"></tbody>
+            </table>
+          </div>
+
+          <!-- WP Users -->
+          <div id="dtab-wpusers" class="dtab-panel hidden">
+            <div class="card mb-12">
+              <div class="card-head"><h3>Create WordPress User</h3></div>
+              <form id="wp-user-form" class="bp-form">
+                <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:8px;align-items:end">
+                  <label><span>Username</span><input type="text" id="wpu-login" class="input-sm" required></label>
+                  <label><span>Email</span><input type="email" id="wpu-email" class="input-sm" required></label>
+                  <label><span>Password</span><input type="text" id="wpu-pass" class="input-sm" placeholder="Auto if empty"></label>
+                  <label>
+                    <span>Role</span>
+                    <select id="wpu-role" class="input-sm">
+                      <option value="administrator">Administrator</option>
+                      <option value="editor">Editor</option>
+                      <option value="author">Author</option>
+                      <option value="contributor">Contributor</option>
+                      <option value="subscriber">Subscriber</option>
+                    </select>
+                  </label>
+                  <button type="submit" class="btn btn-primary btn-sm">Create WP User</button>
+                </div>
+              </form>
+            </div>
+            <table class="data-table">
+              <thead>
+                <tr><th>ID</th><th>Username</th><th>Email</th><th>Role</th><th class="text-right">Actions</th></tr>
+              </thead>
+              <tbody id="drawer-wpusers-tbody"></tbody>
+            </table>
+          </div>
+
+          <!-- Staging -->
+          <div id="dtab-staging" class="dtab-panel hidden">
+            <div id="staging-live-view" class="hidden">
+              <div class="card mb-12">
+                <div class="card-head"><h3>Create Staging Copy</h3></div>
+                <form id="staging-create-form" class="bp-form">
+                  <div class="search-install">
+                    <input type="text" id="staging-domain-input" class="input-sm" placeholder="staging.example.com" required>
+                    <button type="submit" class="btn btn-primary btn-sm">Create Staging</button>
+                  </div>
+                  <div class="muted">Clones files &amp; database, updates wp-config.php, and runs search-replace automatically.</div>
+                </form>
+              </div>
+              <div class="card">
+                <div class="card-head"><h3>Existing Staging Copies</h3></div>
+                <table class="data-table">
+                  <thead><tr><th>Staging Domain</th><th>URL</th><th class="text-right">Actions</th></tr></thead>
+                  <tbody id="staging-list-tbody"></tbody>
+                </table>
+              </div>
+            </div>
+
+            <div id="staging-child-view" class="hidden">
+              <div class="card">
+                <div class="card-head"><h3>Staging Site Controls</h3></div>
+                <div style="padding:14px;display:grid;gap:12px">
+                  <div>This site is a staging copy of <strong id="staging-parent-domain"></strong>.</div>
+                  <div class="btn-group">
+                    <button id="btn-push-files" class="btn btn-primary btn-sm">Push Files Only (Safe for E-Shops)</button>
+                    <button id="btn-push-full" class="btn btn-secondary btn-sm">Push Full (Files + DB)</button>
+                    <button id="btn-delete-staging" class="btn btn-danger btn-sm">Delete Staging Site</button>
+                  </div>
+                  <div class="muted">Files Only keeps live WooCommerce orders &amp; users untouched. Both modes create a pre-push snapshot on Live first.</div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Snapshots -->
+          <div id="dtab-snapshots" class="dtab-panel hidden">
+            <div class="panel-header">
+              <div class="btn-group">
+                <button id="btn-snap-full" class="btn btn-primary btn-sm">Take Full Snapshot (DB + wp-content)</button>
+                <button id="btn-snap-db" class="btn btn-secondary btn-sm">Take DB Snapshot</button>
+              </div>
+              <span class="muted" id="snap-storage-path"></span>
+            </div>
+            <table class="data-table">
+              <thead>
+                <tr><th>Created</th><th>Action</th><th>Target</th><th>Download</th><th class="text-right">Actions</th></tr>
+              </thead>
+              <tbody id="drawer-snapshots-tbody"></tbody>
+            </table>
+          </div>
+
+          <!-- Diagnostics -->
+          <div id="dtab-diagnostics" class="dtab-panel hidden">
+            <div class="diag-actions">
+              <button class="btn btn-secondary btn-sm" data-diag="cache-flush">Flush WP & Nginx Cache</button>
+              <button class="btn btn-secondary btn-sm" data-diag="verify-checksums">Verify Core Checksums</button>
+              <button class="btn btn-secondary btn-sm" data-toggle="debug-on">WP_DEBUG On</button>
+              <button class="btn btn-secondary btn-sm" data-toggle="debug-off">WP_DEBUG Off</button>
+              <button class="btn btn-secondary btn-sm" data-toggle="maintenance-on">Maintenance On</button>
+              <button class="btn btn-secondary btn-sm" data-toggle="maintenance-off">Maintenance Off</button>
+              <button class="btn btn-primary btn-sm" id="btn-tail-debug">Tail debug.log</button>
+            </div>
+            <pre id="debug-log-box" class="log-box hidden"></pre>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Deploy Modal -->
+    <div id="deploy-modal" class="drawer-backdrop hidden">
+      <div class="modal-card">
+        <div class="card-head">
+          <h3 id="deploy-title">Deploy ZIP</h3>
+          <button id="deploy-close" class="btn btn-ghost btn-sm">✕</button>
+        </div>
+        <div id="deploy-sites-list" class="deploy-list"></div>
+        <div class="modal-foot">
+          <button id="deploy-select-all" class="btn btn-secondary btn-sm">Select All</button>
+          <button id="deploy-confirm" class="btn btn-primary btn-sm">Deploy Selected</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Profile Modal -->
+    <div id="profile-modal" class="drawer-backdrop hidden" style="justify-content:center;align-items:center">
+      <div class="modal-card">
+        <div class="card-head">
+          <h3>My Profile — <span id="profile-username"></span></h3>
+          <button id="profile-close" class="btn btn-ghost btn-sm">✕</button>
+        </div>
+        <form id="profile-form" class="bp-form">
+          <label>
+            <span>Current Password</span>
+            <input type="password" id="prof-current" class="input-sm" required>
+          </label>
+          <label>
+            <span>New Password (min 8 chars, letters + numbers)</span>
+            <input type="password" id="prof-new" class="input-sm" minlength="8" required>
+          </label>
+          <label>
+            <span>Confirm New Password</span>
+            <input type="password" id="prof-confirm" class="input-sm" minlength="8" required>
+          </label>
+          <button type="submit" class="btn btn-primary btn-sm">Update Password</button>
+        </form>
+      </div>
+    </div>
+
+    <!-- Live Terminal Drawer -->
+    <div class="terminal-bar">
+      <div class="terminal-head" id="terminal-toggle">
+        <div class="terminal-title">
+          <span id="sse-dot" class="sse-dot"></span>
+          <span>Live WP-CLI Terminal</span>
+          <span id="active-job-label" class="muted"></span>
+        </div>
+        <div class="btn-group">
+          <button id="terminal-clear" class="btn btn-ghost btn-xs">Clear</button>
+          <span id="terminal-chevron" class="muted">▲</span>
+        </div>
+      </div>
+      <pre id="terminal-output" class="terminal-output hidden"></pre>
+    </div>
+  </div>
+
+  <div id="toast-wrap" class="toast-wrap"></div>
+  <script src="/app.js"></script>
+</body>
+</html>

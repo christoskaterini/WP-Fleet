@@ -1,0 +1,265 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+# Root-owned helper for wp-fleet. Strictly validates all inputs.
+
+validate_user() {
+  local u="$1"
+  [[ "$u" =~ ^[a-z][a-z0-9_-]{0,31}$ ]] || { echo "Invalid user" >&2; exit 1; }
+  [[ "$u" != "root" && "$u" != "admin" && "$u" != "www-data" ]] || { echo "Forbidden user" >&2; exit 1; }
+  local uid
+  uid=$(id -u "$u" 2>/dev/null || echo 0)
+  [[ "$uid" -ge 1000 ]] || { echo "User UID must be >= 1000" >&2; exit 1; }
+}
+
+validate_domain() {
+  local d="$1"
+  [[ "$d" =~ ^[a-zA-Z0-9.-]+$ ]] || { echo "Invalid domain" >&2; exit 1; }
+  [[ "$d" != *".."* ]] || { echo "Invalid domain path" >&2; exit 1; }
+}
+
+validate_slug() {
+  local s="$1"
+  [[ "$s" =~ ^[a-zA-Z0-9_-]+$ ]] || { echo "Invalid slug" >&2; exit 1; }
+}
+
+validate_type() {
+  local t="$1"
+  [[ "$t" == "plugin" || "$t" == "theme" ]] || { echo "Invalid type" >&2; exit 1; }
+}
+
+cmd="${1:-}"
+shift || true
+
+case "$cmd" in
+  discover)
+    echo "["
+    first=1
+    for cfg in /home/*/web/*/public_html/wp-config.php; do
+      [[ -f "$cfg" ]] || continue
+      # Extract user and domain from /home/<user>/web/<domain>/public_html/wp-config.php
+      rel="${cfg#/home/}"
+      user="${rel%%/*}"
+      rest="${rel#*/web/}"
+      domain="${rest%%/public_html/wp-config.php}"
+      [[ "$user" == "admin" ]] && continue
+      validate_user "$user" 2>/dev/null || continue
+      validate_domain "$domain" 2>/dev/null || continue
+
+      site_path="/home/${user}/web/${domain}/public_html"
+      php_ver=""
+      nginx_conf="/home/${user}/conf/web/${domain}/nginx.conf"
+      if [[ -f "$nginx_conf" ]]; then
+        php_ver=$(grep -oE 'php[0-9]+\.[0-9]+-fpm' "$nginx_conf" | head -n1 | sed -E 's/php([0-9]+\.[0-9]+)-fpm/\1/' || true)
+      fi
+
+      [[ $first -eq 0 ]] && echo ","
+      first=0
+      printf '  {"user":"%s","domain":"%s","path":"%s","php_version":"%s"}' \
+        "$user" "$domain" "$site_path" "$php_ver"
+    done
+    echo ""
+    echo "]"
+    ;;
+
+  archive)
+    user="${1:?}" domain="${2:?}" type="${3:?}" slug="${4:?}" dest="${5:?}"
+    validate_user "$user"
+    validate_domain "$domain"
+    validate_type "$type"
+    validate_slug "$slug"
+    [[ "$dest" == /var/backups/wp-fleet/"${domain}"/*.tar.gz ]] || { echo "Invalid archive path" >&2; exit 1; }
+    [[ "$dest" != *".."* ]] || { echo "Invalid archive path" >&2; exit 1; }
+
+    folder="plugins"
+    [[ "$type" == "theme" ]] && folder="themes"
+    parent="/home/${user}/web/${domain}/public_html/wp-content/${folder}"
+    [[ -d "${parent}/${slug}" ]] || { echo "Target folder not found" >&2; exit 1; }
+
+    mkdir -p "$(dirname "$dest")"
+    tar -czf "$dest" -C "$parent" "$slug"
+    chown wp-fleet:wp-fleet "$dest"
+    chmod 640 "$dest"
+    ;;
+
+  restore-archive)
+    user="${1:?}" domain="${2:?}" type="${3:?}" slug="${4:?}" src="${5:?}"
+    validate_user "$user"
+    validate_domain "$domain"
+    validate_type "$type"
+    validate_slug "$slug"
+    [[ "$src" == /var/backups/wp-fleet/"${domain}"/*.tar.gz ]] || { echo "Invalid archive path" >&2; exit 1; }
+    [[ "$src" != *".."* && -f "$src" ]] || { echo "Archive not found" >&2; exit 1; }
+
+    folder="plugins"
+    [[ "$type" == "theme" ]] && folder="themes"
+    parent="/home/${user}/web/${domain}/public_html/wp-content/${folder}"
+    [[ -d "$parent" ]] || { echo "Parent folder not found" >&2; exit 1; }
+
+    rm -rf "${parent:?}/${slug}"
+    tar -xzf "$src" -C "$parent"
+    chown -R "${user}:${user}" "${parent}/${slug}"
+    ;;
+
+  archive-content)
+    user="${1:?}" domain="${2:?}" dest="${3:?}"
+    validate_user "$user"
+    validate_domain "$domain"
+    [[ "$dest" == /var/backups/wp-fleet/"${domain}"/*.tar.gz ]] || { echo "Invalid archive path" >&2; exit 1; }
+    [[ "$dest" != *".."* ]] || { echo "Invalid archive path" >&2; exit 1; }
+
+    wp_dir="/home/${user}/web/${domain}/public_html"
+    [[ -d "${wp_dir}/wp-content" ]] || { echo "wp-content not found" >&2; exit 1; }
+
+    mkdir -p "$(dirname "$dest")"
+    tar -czf "$dest" --exclude='wp-content/cache' --exclude='wp-content/upgrade' -C "$wp_dir" wp-content
+    chown wp-fleet:wp-fleet "$dest"
+    chmod 640 "$dest"
+    ;;
+
+  restore-content)
+    user="${1:?}" domain="${2:?}" src="${3:?}"
+    validate_user "$user"
+    validate_domain "$domain"
+    [[ "$src" == /var/backups/wp-fleet/"${domain}"/*.tar.gz ]] || { echo "Invalid archive path" >&2; exit 1; }
+    [[ "$src" != *".."* && -f "$src" ]] || { echo "Archive not found" >&2; exit 1; }
+
+    wp_dir="/home/${user}/web/${domain}/public_html"
+    [[ -d "$wp_dir" ]] || { echo "Site path not found" >&2; exit 1; }
+
+    tar -xzf "$src" -C "$wp_dir"
+    chown -R "${user}:${user}" "${wp_dir}/wp-content"
+    ;;
+
+  purge-cache)
+    domain="${1:?}"
+    validate_domain "$domain"
+    cache_dir="/var/cache/nginx/micro/${domain}"
+    if [[ -d "$cache_dir" ]]; then
+      find "$cache_dir" -mindepth 1 -delete
+    fi
+    ;;
+
+  write-sso)
+    user="${1:?}" domain="${2:?}" filename="${3:?}" b64="${4:?}"
+    validate_user "$user"
+    validate_domain "$domain"
+    [[ "$filename" =~ ^wpfleet-sso-[a-f0-9]{12}\.php$ ]] || { echo "Invalid SSO filename" >&2; exit 1; }
+    mu_dir="/home/${user}/web/${domain}/public_html/wp-content/mu-plugins"
+    mkdir -p "$mu_dir"
+    chown "${user}:${user}" "$mu_dir"
+    echo "$b64" | base64 -d > "${mu_dir}/${filename}"
+    chown "${user}:${user}" "${mu_dir}/${filename}"
+    chmod 644 "${mu_dir}/${filename}"
+    ;;
+
+  delete-sso)
+    user="${1:?}" domain="${2:?}" filename="${3:?}"
+    validate_user "$user"
+    validate_domain "$domain"
+    [[ "$filename" =~ ^wpfleet-sso-[a-f0-9]{12}\.php$ ]] || { echo "Invalid SSO filename" >&2; exit 1; }
+    rm -f "/home/${user}/web/${domain}/public_html/wp-content/mu-plugins/${filename}"
+    ;;
+
+  tail-debug)
+    user="${1:?}" domain="${2:?}"
+    validate_user "$user"
+    validate_domain "$domain"
+    log_file="/home/${user}/web/${domain}/public_html/wp-content/debug.log"
+    if [[ -f "$log_file" ]]; then
+      tail -n 200 "$log_file"
+    else
+      echo "(debug.log not found)"
+    fi
+    ;;
+
+  create-staging)
+    user="${1:?}" live_domain="${2:?}" stg_domain="${3:?}" db_name="${4:?}" db_user="${5:?}" db_pass="${6:?}"
+    validate_user "$user"
+    validate_domain "$live_domain"
+    validate_domain "$stg_domain"
+    [[ "$db_name" =~ ^[a-zA-Z0-9_]{1,64}$ ]] || { echo "Invalid db_name" >&2; exit 1; }
+    [[ "$db_user" =~ ^[a-zA-Z0-9_]{1,32}$ ]] || { echo "Invalid db_user" >&2; exit 1; }
+
+    live_dir="/home/${user}/web/${live_domain}/public_html"
+    stg_dir="/home/${user}/web/${stg_domain}/public_html"
+    [[ -d "$live_dir" ]] || { echo "Live site not found" >&2; exit 1; }
+
+    if command -v v-add-web-domain >/dev/null 2>&1; then
+      v-add-web-domain "$user" "$stg_domain" "" "no" || true
+      v-add-database "$user" "$db_name" "$db_user" "$db_pass" "mysql" "localhost" || true
+    else
+      mkdir -p "$stg_dir" "/home/${user}/conf/web/${stg_domain}" "/var/cache/nginx/micro/${stg_domain}"
+      chown -R "${user}:${user}" "/home/${user}/web/${stg_domain}" "/home/${user}/conf/web/${stg_domain}"
+      mariadb -e "CREATE DATABASE IF NOT EXISTS \`${db_name}\`; CREATE USER IF NOT EXISTS '${db_user}'@'localhost' IDENTIFIED BY '${db_pass}'; GRANT ALL PRIVILEGES ON \`${db_name}\`.* TO '${db_user}'@'localhost'; FLUSH PRIVILEGES;"
+      cat > "/etc/nginx/sites-available/${stg_domain}" <<NGX
+server {
+    listen 80;
+    server_name ${stg_domain};
+    root ${stg_dir};
+    index index.php index.html;
+    location / { try_files \$uri \$uri/ /index.php?\$args; }
+    location ~ \.php\$ {
+        include snippets/fastcgi-php.conf;
+        fastcgi_pass unix:/run/php/php8.3-fpm.sock;
+    }
+}
+NGX
+      ln -sf "/etc/nginx/sites-available/${stg_domain}" "/etc/nginx/sites-enabled/${stg_domain}"
+      grep -q "$stg_domain" /etc/hosts || echo "127.0.0.1 ${stg_domain}" >> /etc/hosts
+      nginx -t && service nginx reload
+    fi
+
+    rsync -a --delete \
+      --exclude='wp-content/cache' \
+      --exclude='wp-content/litespeed' \
+      --exclude='wp-content/w3tc-config' \
+      --exclude='wp-content/upgrade' \
+      --exclude='wp-content/advanced-cache.php' \
+      "${live_dir}/" "${stg_dir}/"
+    chown -R "${user}:${user}" "$stg_dir"
+    ;;
+
+  push-staging)
+    user="${1:?}" stg_domain="${2:?}" live_domain="${3:?}"
+    validate_user "$user"
+    validate_domain "$stg_domain"
+    validate_domain "$live_domain"
+    stg_dir="/home/${user}/web/${stg_domain}/public_html"
+    live_dir="/home/${user}/web/${live_domain}/public_html"
+    [[ -d "$stg_dir" && -d "$live_dir" ]] || { echo "Site path not found" >&2; exit 1; }
+
+    rsync -a --delete \
+      --exclude='wp-config.php' \
+      --exclude='wp-content/cache' \
+      --exclude='wp-content/litespeed' \
+      --exclude='wp-content/w3tc-config' \
+      --exclude='wp-content/upgrade' \
+      --exclude='wp-content/advanced-cache.php' \
+      --exclude='wp-content/object-cache.php' \
+      "${stg_dir}/" "${live_dir}/"
+    chown -R "${user}:${user}" "$live_dir"
+    ;;
+
+  delete-staging)
+    user="${1:?}" stg_domain="${2:?}" db_name="${3:?}"
+    validate_user "$user"
+    validate_domain "$stg_domain"
+    [[ "$db_name" =~ ^[a-zA-Z0-9_]{1,64}$ ]] || { echo "Invalid db_name" >&2; exit 1; }
+
+    if command -v v-delete-web-domain >/dev/null 2>&1; then
+      v-delete-web-domain "$user" "$stg_domain" || true
+      v-delete-database "$user" "$db_name" || true
+    else
+      rm -f "/etc/nginx/sites-enabled/${stg_domain}" "/etc/nginx/sites-available/${stg_domain}"
+      rm -rf "/home/${user}/web/${stg_domain}" "/home/${user}/conf/web/${stg_domain}" "/var/cache/nginx/micro/${stg_domain}"
+      mariadb -e "DROP DATABASE IF EXISTS \`${db_name}\`;"
+      nginx -t && service nginx reload
+    fi
+    ;;
+
+  *)
+    echo "Unknown command: $cmd" >&2
+    exit 1
+    ;;
+esac
