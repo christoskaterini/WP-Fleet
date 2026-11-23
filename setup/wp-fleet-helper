@@ -175,24 +175,32 @@ case "$cmd" in
     ;;
 
   create-staging)
-    user="${1:?}" live_domain="${2:?}" stg_domain="${3:?}" db_name="${4:?}" db_user="${5:?}" db_pass="${6:?}"
+    user="${1:?}" live_domain="${2:?}" stg_domain="${3:?}" db_suffix="${4:?}" db_user_suffix="${5:?}" db_pass="${6:?}"
     validate_user "$user"
     validate_domain "$live_domain"
     validate_domain "$stg_domain"
-    [[ "$db_name" =~ ^[a-zA-Z0-9_]{1,64}$ ]] || { echo "Invalid db_name" >&2; exit 1; }
-    [[ "$db_user" =~ ^[a-zA-Z0-9_]{1,32}$ ]] || { echo "Invalid db_user" >&2; exit 1; }
+    [[ "$db_suffix" =~ ^[a-zA-Z0-9_]{1,20}$ ]] || { echo "Invalid db_suffix" >&2; exit 1; }
+    [[ "$db_user_suffix" =~ ^[a-zA-Z0-9_]{1,16}$ ]] || { echo "Invalid db_user_suffix" >&2; exit 1; }
 
     live_dir="/home/${user}/web/${live_domain}/public_html"
     stg_dir="/home/${user}/web/${stg_domain}/public_html"
     [[ -d "$live_dir" ]] || { echo "Live site not found" >&2; exit 1; }
 
+    full_db="${user}_${db_suffix}"
+    full_user="${user}_${db_user_suffix}"
+
     if command -v v-add-web-domain >/dev/null 2>&1; then
-      v-add-web-domain "$user" "$stg_domain" "" "no" || true
-      v-add-database "$user" "$db_name" "$db_user" "$db_pass" "mysql" "localhost" || true
+      if ! v-list-web-domains "$user" | awk '{print $1}' | grep -qx "$stg_domain"; then
+        rm -rf "/home/${user}/web/${stg_domain}"
+        v-add-web-domain "$user" "$stg_domain" "" "no"
+      fi
+      if ! v-list-databases "$user" | awk '{print $1}' | grep -qx "$full_db"; then
+        v-add-database "$user" "$db_suffix" "$db_user_suffix" "$db_pass" "mysql" "localhost"
+      fi
     else
       mkdir -p "$stg_dir" "/home/${user}/conf/web/${stg_domain}" "/var/cache/nginx/micro/${stg_domain}"
       chown -R "${user}:${user}" "/home/${user}/web/${stg_domain}" "/home/${user}/conf/web/${stg_domain}"
-      mariadb -e "CREATE DATABASE IF NOT EXISTS \`${db_name}\`; CREATE USER IF NOT EXISTS '${db_user}'@'localhost' IDENTIFIED BY '${db_pass}'; GRANT ALL PRIVILEGES ON \`${db_name}\`.* TO '${db_user}'@'localhost'; FLUSH PRIVILEGES;"
+      mariadb -e "CREATE DATABASE IF NOT EXISTS \`${full_db}\`; CREATE USER IF NOT EXISTS '${full_user}'@'localhost' IDENTIFIED BY '${db_pass}'; GRANT ALL PRIVILEGES ON \`${full_db}\`.* TO '${full_user}'@'localhost'; FLUSH PRIVILEGES;"
       cat > "/etc/nginx/sites-available/${stg_domain}" <<NGX
 server {
     listen 80;
@@ -219,6 +227,8 @@ NGX
       --exclude='wp-content/advanced-cache.php' \
       "${live_dir}/" "${stg_dir}/"
     chown -R "${user}:${user}" "$stg_dir"
+    echo "DB_NAME=${full_db}"
+    echo "DB_USER=${full_user}"
     ;;
 
   push-staging)

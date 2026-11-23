@@ -542,13 +542,18 @@ app.post('/api/sites/:domain/staging/create', async (req) => {
     action: 'staging:create',
     label: `Create staging ${stgDomain} from ${domain}`,
     fn: async (log) => {
-      const slug = stgDomain.replace(/[^a-zA-Z0-9]/g, '').slice(0, 14);
-      const dbName = `${liveSite.user.slice(0, 8)}_stg_${slug}`.slice(0, 32);
-      const dbUser = dbName.slice(0, 16);
+      const suffix = `stg_${crypto.randomBytes(3).toString('hex')}`;
       const dbPass = crypto.randomBytes(12).toString('hex');
 
-      log(`Provisioning staging ${stgDomain} (DB: ${dbName})...`);
-      await runHelper(['create-staging', liveSite.user, domain, stgDomain, dbName, dbUser, dbPass], { onLine: log });
+      log(`Provisioning staging ${stgDomain} (DB: ${liveSite.user}_${suffix})...`);
+      const hRes = await runHelper(
+        ['create-staging', liveSite.user, domain, stgDomain, suffix, suffix, dbPass],
+        { onLine: log }
+      );
+      const dbNameMatch = hRes.stdout.match(/DB_NAME=([^\r\n]+)/);
+      const dbUserMatch = hRes.stdout.match(/DB_USER=([^\r\n]+)/);
+      const dbName = dbNameMatch ? dbNameMatch[1].trim() : `${liveSite.user}_${suffix}`;
+      const dbUser = dbUserMatch ? dbUserMatch[1].trim() : `${liveSite.user}_${suffix}`;
 
       const stgPath = `/home/${liveSite.user}/web/${stgDomain}/public_html`;
       const stgSite = { user: liveSite.user, domain: stgDomain, path: stgPath, php_version: liveSite.php_version };
@@ -558,7 +563,7 @@ app.post('/api/sites/:domain/staging/create', async (req) => {
       await runWp(stgSite, ['config', 'set', 'DB_PASSWORD', dbPass], { onLine: log });
       await runWp(stgSite, ['config', 'set', 'DB_HOST', '127.0.0.1'], { onLine: log });
       await runWp(stgSite, ['config', 'set', 'WP_CACHE', 'false', '--raw'], { onLine: log }).catch(() => {});
-      await runWp(stgSite, ['config', 'set', 'WP_CACHE_KEY_SALT', `stg_${slug}_${crypto.randomBytes(4).toString('hex')}`], { onLine: log }).catch(() => {});
+      await runWp(stgSite, ['config', 'set', 'WP_CACHE_KEY_SALT', `${suffix}_${crypto.randomBytes(3).toString('hex')}`], { onLine: log }).catch(() => {});
 
       await pipeDbBetweenSites(liveSite, stgSite, log);
 
