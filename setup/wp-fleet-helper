@@ -265,7 +265,7 @@ NGX
     else
       rm -f "/etc/nginx/sites-enabled/${stg_domain}" "/etc/nginx/sites-available/${stg_domain}"
       rm -rf "/home/${user}/web/${stg_domain}" "/home/${user}/conf/web/${stg_domain}" "/var/cache/nginx/micro/${stg_domain}"
-      mariadb -e "DROP DATABASE IF EXISTS \`${db_name}\`;"
+      mariadb -e "DROP DATABASE IF EXISTS \`${db_name}\`; DROP USER IF EXISTS '${db_name}'@'localhost'; DROP USER IF EXISTS '${db_name}'@'%'; FLUSH PRIVILEGES;"
       nginx -t && service nginx reload
     fi
     ;;
